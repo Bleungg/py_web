@@ -3,16 +3,17 @@ import os
 import re
 import time
 import mimetypes
+import json
 from http.server import *
 from threading import Thread
 
 class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
-            root = os.path.join(os.getcwd(), "public")
+            project_root = os.path.dirname(__file__)
+            root = os.path.join(project_root, "..", "public")
             curr_path = os.path.normpath(self.path.lstrip("/"))
             full_path = os.path.join(root, curr_path)
-            full_path = os.path.realpath(full_path)
 
             if not os.path.exists(full_path):
                 raise FileNotFoundError(f"{self.path} not found")
@@ -24,7 +25,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.handle_file(index_path)
 
                 else:
-                    raise FileNotFoundError(f"No index.html in directory {self.path}")
+                    raise FileNotFoundError(f"{self.path} is not a file")
                 
             elif os.path.isfile(full_path):
                 self.handle_file(full_path)
@@ -34,6 +35,39 @@ class RequestHandler(BaseHTTPRequestHandler):
             
         except Exception:
             self.handle_error()
+
+    def do_POST(self):
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length)
+            content_type = self.headers.get("Content-Type", "")
+
+            project_root = os.path.dirname(os.path.dirname(__file__))
+            # uploads_dir = os.path.join(project_root, "..", "public", "uploads")
+
+            if content_type.startswith("application/json"):
+                resp = self.post_json(body)
+
+            else:
+                err = {"status": "error", "message": "unsupported content type"}
+                self.send_content(json.dumps(err).encode(), 415, "response.json")
+                return
+
+            self.send_content(json.dumps(resp).encode(), 200, "response.json")
+
+        except Exception as e:
+            err = {"status": "error", "message": str(e)}
+            self.send_content(json.dumps(err).encode(), 500, "response.json")
+
+    def post_json(self, body):
+        try:
+            data = json.loads(body.decode("utf-8")) if body else {}
+        except json.JSONDecodeError:
+            err = {"status": "error", "message": "invalid JSON"}
+            self.send_content(json.dumps(err).encode(), 400, "response.json")
+            return
+        
+        return {"status": "OK", "data": data}
 
     def handle_file(self, full_path):
         try:
@@ -65,7 +99,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def handle_error(self):
         try:
-            path = os.path.join(os.path.dirname(__file__), "../templates/error.html")
+            path = os.path.join(os.path.dirname(__file__), ".." , "templates", "error.html")
             with open(path, "rb") as f:
                 content = f.read()
             self.send_content(content, 404, path)

@@ -42,9 +42,6 @@ class RequestHandler(BaseHTTPRequestHandler):
             body = self.rfile.read(content_length)
             content_type = self.headers.get("Content-Type", "")
 
-            project_root = os.path.dirname(os.path.dirname(__file__))
-            # uploads_dir = os.path.join(project_root, "..", "public", "uploads")
-
             if content_type.startswith("application/json"):
                 resp = self.post_json(body)
 
@@ -61,7 +58,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def post_json(self, body):
         try:
-            data = json.loads(body.decode("utf-8")) if body else {}
+            data = json.loads(body.decode())
         except json.JSONDecodeError:
             err = {"status": "error", "message": "invalid JSON"}
             self.send_content(json.dumps(err).encode(), 400, "response.json")

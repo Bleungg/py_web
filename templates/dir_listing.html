@@ -1,15 +1,20 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Directory listing for {{path}}</title>
+    <link rel="stylesheet" href="css/dir_style.css">
 </head>
 
 <body>
-    <h1>Directory listing for {{path}}</h1>
-    <ul>
-        {{file_list}}
-    </ul>
+    <div class="container">
+        <h1>📁 Directory listing for <span>{{path}}</span></h1>
+        <ul>
+            {{file_list}}
+        </ul>
+    </div>
 </body>
 
 </html>

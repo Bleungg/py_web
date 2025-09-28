@@ -10,8 +10,8 @@ from threading import Thread
 class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
-            project_root = os.path.dirname(__file__)
-            root = os.path.join(project_root, "..", "public")
+            web_root = os.path.dirname(__file__)
+            root = os.path.join(web_root, "..", "public")
             curr_path = os.path.normpath(self.path.lstrip("/"))
             full_path = os.path.join(root, curr_path)
 
@@ -25,7 +25,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.handle_file(index_path)
 
                 else:
-                    raise FileNotFoundError(f"{self.path} is not a file")
+                    self.list_directory(full_path, self.path)
                 
             elif os.path.isfile(full_path):
                 self.handle_file(full_path)
@@ -93,6 +93,30 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         self.end_headers()
         self.wfile.write(content)
+
+    def list_directory(self, full_path, display_path):
+        try:
+            web_root = os.path.dirname(__file__)
+            template_path = os.path.join(web_root, "..", "templates", "dir_listing.html")
+
+            with open(template_path, "r") as f:
+                template = f.read()
+
+            files = os.listdir(full_path)
+            file_list_html = ""
+
+            for name in files:
+                path = os.path.join(full_path, name)
+                url = os.path.join(display_path, name).replace("\\", "/")
+                display = name + "/" if os.path.isdir(path) else name
+                file_list_html += f'<li><a href="/{url.lstrip("/")}">{display}</a></li>\n'
+
+            html = template.replace("{{path}}", display_path)
+            html = html.replace("{{file_list}}", file_list_html)
+
+            self.send_content(html.encode(), 200, "dir_listing.html")
+        except Exception:
+            self.handle_error()
 
     def handle_error(self):
         try:

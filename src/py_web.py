@@ -2,6 +2,7 @@ import sys
 import os
 import re
 import time
+import mimetypes
 from http.server import *
 from threading import Thread
 
@@ -38,27 +39,27 @@ class RequestHandler(BaseHTTPRequestHandler):
         try:
             with open(full_path, "rb") as f:
                 content = f.read()
+
             self.send_content(content, 200, full_path)
+            
         except Exception:
             self.handle_error()
 
     def send_content(self, content, status, path: str=None):
-        if path and path.endswith(".html"):
-            content_type = "text/html"
-        elif path and path.endswith(".css"):
-            content_type = "text/css"
-        elif path and path.endswith(".js"):
-            content_type = "application/javascript"
-        elif path and path.endswith(".png"):
-            content_type = "image/png"
-        elif path and (path.endswith(".jpg") or path.endswith(".jpeg")):
-            content_type = "image/jpeg"
-        else:
-            content_type = "application/octet-stream"
+        content_type = "application/octet-stream"
+
+        if path:
+            mime_type, encoding = mimetypes.guess_type(path)
+            if mime_type:
+                content_type = mime_type
 
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(content)))
+
+        if path and encoding:
+            self.send_header("Content-Encoding", encoding)
+
         self.end_headers()
         self.wfile.write(content)
 
